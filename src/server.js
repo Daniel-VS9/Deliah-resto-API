@@ -1,10 +1,11 @@
 const express = require('express')
 const app = express()
 const basicAuth = require('express-basic-auth')
-const { authentication } = require('./middleware/auth.mw')
+const { authentication, authorizeToken } = require('./middleware/auth.mw')
 const swaggerJsdoc = require('swagger-jsdoc')
 const swaggerUI = require('swagger-ui-express')
 const path = require('path')
+const db = require('./database/db')
 
 require('dotenv').config({path : path.resolve(__dirname, '../.env')})
 
@@ -19,7 +20,8 @@ app.use(express.json())
 app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(swaggerDocs))
 app.use('/', require('./routes/users'))
 
-app.use(basicAuth({ authorizer : authentication }))
+app.use(authorizeToken)
+
 app.use('/products', require('./routes/products'))
 // app.use('/user', require('./routes/users'))
 app.use('/', require('./routes/orders'))

@@ -17,6 +17,23 @@ git clone https://gitlab.com/DDVS/deliah-resto-api.git
 ```
 npm install
 ```
+
+#### 3. Create .env file
+Create a file on the project folder
+Linux and mac os:
+```
+touch .env
+```
+
+Put this enviroment variables inside
+
+PORT=3000
+DB_HOST 
+DB_NAME
+DB_PASSWORD
+DB_USER
+ACCESS_TOKEN_KEY
+
 #### 3. Run the server
 ```
 npm run start

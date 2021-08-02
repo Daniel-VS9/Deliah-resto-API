@@ -1,376 +1,212 @@
 const express = require('express')
+const db = require('../database/db')
 const router = express.Router()
 
-const { verifyAdmin} = require('../middleware/auth.mw')
-const { getOrders, updateStatus, addOrder, updateOrder, confirmOrder } = require('../models/order')
-const { getProducts } = require('../models/product')
-const { getUsers } = require('../models/user')
+const { verifyAdmin2} = require('../middleware/auth.mw')
+const {verifyOpenOrder, verifyClosedOrder } = require('../middleware/verify')
+// const { getOrders, updateStatus, addOrder, updateOrder, confirmOrder } = require('../models/order')
+// const { getProducts } = require('../models/product')
+// const { getUsers } = require('../models/user')
 
-/**
- * @swagger
- * /orders:
- *  get:
- *      summary: Get all users orders 
- *      tags: [Orders]
- *      responses:
- *          '200':
- *              description: A JSON array of orders
- *              content:
- *                  application/json:
- *                      schema:
- *                          type: array
- *                          items:
- *                              $ref: '#/components/schemas/order'
- *          '401':
- *              description: No user is logged in
- *          '403':
- *              description: This route is only for admins
- */
-router.get('/orders', verifyAdmin, (req, res) => {
-    res.json(getOrders())
+router.get('/orders2', verifyAdmin2, async (req, res) => {
+    try {
+        const query =
+            'SELECT o.id as orderID, s.name as status, u.fullname as username, o.address, pm.name as payment_method, o.final_price FROM order_ o' +
+            ' JOIN status s ON o.status_id = s.id' +
+            ' JOIN payment_method pm ON pm.id = o.payment_id' +
+            ' JOIN user u ON u.id = o.user_id ORDER BY o.id';
+        const orders = await db.query(query);
+
+        const ordersWithProducts = []
+
+        await Promise.all( orders.map(async order => {
+            const products = await db.query('SELECT name, quantity, price FROM order_product WHERE order_id = ?', [order['orderID']])
+            ordersWithProducts.push({order, products})
+        }) )
+
+        res.json(ordersWithProducts);
+    } catch (err) {
+        res.sendStatus(500);
+    }
+});
+
+router.get('/myorders2', async (req, res) => {
+    const {id} = req.userData
+    
+    try {
+        const query =
+            'SELECT o.id as orderID, s.name as status, u.fullname as username, o.address, pm.name as payment_method, o.final_price FROM order_ o' +
+            ' JOIN status s ON o.status_id = s.id' +
+            ' JOIN payment_method pm ON pm.id = o.payment_id' +
+            ' JOIN user u ON u.id = o.user_id' +
+            ' WHERE o.user_id = ? ORDER BY o.id';
+        const orders = await db.query(query, [id])
+        
+        const ordersWithProducts = []
+
+        await Promise.all( orders.map(async order => {
+            const products = await db.query('SELECT name, quantity, price FROM order_product WHERE order_id = ?', [order['orderID']])
+            ordersWithProducts.push({order, products})
+        }) )
+
+        res.json(ordersWithProducts);
+    } catch (err) {
+        // console.log(err)
+        res.sendStatus(500)
+    }
 })
 
-/**
- * @swagger
- * /user/myorders:
- *  get:
- *      summary: Get user orders 
- *      tags: [Orders]
- *      responses:
- *          '200':
- *              description: A JSON array of orders
- *              content:
- *                  application/json:
- *                      schema:
- *                          type: array
- *                          items:
- *                              $ref: '#/components/schemas/order'
- *          '401':
- *              description: No user is logged in
- */
-router.get('/user/myorders', (req, res) => {
-    const email = req.auth.user
-    res.json(getOrders().filter(o => o.userEmail === email))
+router.put('/order/:id/status', verifyAdmin2, async (req, res) => {
+    const {id} = req.params
+    const {newStatus} = req.body
+    if (!newStatus) return res.sendStatus(400)
+
+    try {
+        if (newStatus != 3 && newStatus != 4 && newStatus != 5 && newStatus != 6 && newStatus != 7) throw new Error('InvalidStatus')
+        const result = await db.query('UPDATE order_ SET status_id = ? WHERE id = ?', [newStatus, id])
+        if (result.affectedRows == 0) throw new Error('orderNotFound')
+        res.sendStatus(200)
+    } catch (err) {
+        // console.error(err)
+        if (err.message == 'InvalidStatus') return res.sendStatus(400)
+        if (err.message == 'orderNotFound') return res.sendStatus(404)
+        res.sendStatus(500)
+    }
 })
 
-/**
- * @swagger
- * /order/{id}/status:
- *  put:
- *      summary: Update order status
- *      parameters:
- *        - name: id
- *          in: path
- *          required: true
- *          description: Id of the order
- *          schema:
- *              type: integer
- *      requestBody:
- *          required: true
- *          content:
- *              application/json:
- *                  schema:
- *                      type: object
- *                      properties:
- *                          status:
- *                              type: string
- *                      example:
- *                          status: delivered
- *      tags: [Orders]
- *      responses:
- *          '200':
- *              description: Returns the requested product
- *              content:
- *                  application/json:
- *                      schema:
- *                          $ref: '#/components/schemas/product'
- *          '400':
- *              description: Bad request
- *              content:
- *                  application/json:
- *                      schema:
- *                          type: object
- *                          properties:
- *                              err:
- *                                  type: string
- *          '401':
- *              description: No user is logged in
- *          '403':
- *              description: This route is only for admins
- *          '404':
- *              description: Order not found
- */
-router.put('/order/:id/status', verifyAdmin, (req, res) => {
-    const id = req.params.id
-    const status = req.body.status
-    order = getOrders().filter(o => o.id == id)[0]
+router.post('/order/confirm2', verifyOpenOrder, async (req, res) => {
+    
+    try {
+        await db.query('UPDATE order_ SET status_id = 4 WHERE ?', [req.userData.lastOrderId])
+        res.sendStatus(204)
+    } catch (error) {
+        res.sendStatus(500)
+    }
+})
 
-    if(order){
-        if (status == 'new' || status == 'confirmed' || status == 'ontheway' || status == 'delivered' || status == 'inProcess') {
-            res.json(updateStatus(id, status))
-        }  else {res.status(400).json({err : 'the status order only can be: new, confirmed, ontheway, delivered, inProcess'})}
-    } else {res.sendStatus(404)}
+router.post('/order/new2', verifyClosedOrder, async (req, res) => {
+    const {products, paymentMethod} = req.body
+    const userId = req.userData.id
+
+    if (!products || !paymentMethod) return res.sendStatus(400)
+
+    try {
+        let finalPrice = 0
+        let userAddress = await db.query('SELECT address FROM user WHERE id = ?', [userId])
+        userAddress = userAddress[0]['address']
+        
+        // TODO: ADD TRANSACTION
+        const address = req.body.address || userAddress 
+        
+        const orderInserted = await db.query(
+            'INSERT INTO order_ (user_id, payment_id, final_price, address) VALUES (?, ?, ?, ?)',
+            [userId, paymentMethod, finalPrice, address]
+        );
+        
+        await Promise.all(
+            products.map(async product => {
+                const result = await db.query('SELECT name, price FROM product WHERE id = ?', [product.id])
+
+                if (result.length == 0) throw new Error('ProductNotFound')
+                if (product.quantity < 1 || !Number.isInteger(product.quantity)) throw new Error('QuantityInvalid')
+                
+                await db.query(
+                    'INSERT INTO order_product (order_id, quantity, name, price) VALUES (?, ?, ?, ?)',
+                    [
+                        orderInserted.insertId,
+                        product.quantity,
+                        result[0]['name'],
+                        result[0]['price']
+                    ]
+                );
+                finalPrice += parseFloat(result[0]['price']).toFixed(2) * product.quantity 
+            })
+        )
+        finalPrice = finalPrice.toFixed(2)
+        
+        await db.query('UPDATE order_ SET final_price = ? WHERE id = ?', [finalPrice, orderInserted.insertId])
+
+        res.sendStatus(201)
+
+    } catch (err) {
+        if (err.message == 'ProductNotFound') return res.sendStatus(404)
+        if (err.message == 'QuantityInvalid') return res.sendStatus(400)
+        res.sendStatus(500)
+    }
 })
 
 
-/**
- * @swagger
- * /order/modify:
- *  put:
- *      summary: Update the open order
- *      requestBody:
- *          required: true
- *          content:
- *              application/json:
- *                  schema:
- *                      type: object
- *                      properties:
- *                          products:
- *                              type: array
- *                              items:
- *                                  type: object
- *                          address:
- *                              type: string
- *                          paymentMethod:
- *                              type: string
- *                      example:
- *                          products: [{id: 1, delete: true}, {id: 2, qty: 1}]
- *                          address: 436 E St NW
- *                          paymentMethod: cash
- *      tags: [Orders]
- *      responses:
- *          '201':
- *             description: Order updated
- *             content:
- *                  aplication/json:
- *                      schema:
- *                          type: array
- *                          items:
- *                              type: object
- *                          example:
- *                              msg : order successfully updated
- *                              order : {id : 1, products : [], status : 'new', userEmail : 'user@mail.com', address : '436 E St NW', paymentMethod : 'cash'}
- *          '400':
- *              description: Bad request
- *              content:
- *                  application/json:
- *                      schema:
- *                          type: object
- *                          properties:
- *                              err:
- *                                  type: string
- *          '401':
- *              description: No user is logged in
- */
-router.put('/order/modify', (req, res) => {
-    const email = req.auth.user
+router.put('/order/modify2', verifyOpenOrder, async (req, res) => {
     const {products} = req.body
     let {address, paymentMethod} = req.body
-    let updateProducts = []
-    let finalPrice = 0
-    let pre = false
+    const userId = req.userData.id
 
-    const lastOrder = getOrders().filter(o => o.userEmail === email).slice(-1)[0]
-    if(lastOrder) {
-        lastOrder.status == 'new' ? pre = true : pre = false 
-    }
-    
-    if (pre) {
-        if(products && products.length>0) {
+    try {
+        if (!address){
+            let userAddress = await db.query('SELECT address FROM user WHERE id = ?', [userId])
+            address = userAddress[0]['address']
+        } 
+
+        const order = await db.query('SELECT * FROM order_ WHERE user_id = ? ORDER BY id DESC LIMIT 1', [userId])  
+        const orderId = order[0]['id']   
+
+        if (paymentMethod) {
+            await db.query('UPDATE order_ SET payment_id = ?, address = ? WHERE id = ?', [paymentMethod, address,  orderId])
+        } 
+
+
+        const productsFromOrder = await db.query('SELECT name, quantity, price FROM order_product WHERE order_id = ?', [orderId])
+
+        if (products && products[0]) {
             
-            products.forEach(product => {
-                if (product.delete == true) {
-                    let index = lastOrder.products.findIndex(p=> p.id === product.id)
-                    lastOrder.products.splice(index , 1)
-                    index = products.findIndex(p => p.id === product.id)
-                    products.splice(index, 1)
+            await Promise.all( products.map(async product => {
+                let change = false
+                if(!product['quantity']) product['quantity'] = 1
+
+                productsFromOrder.map(async productFromOrder => {
+                    if(productFromOrder['name'] == product['name']) {
+                        change = true
+                        await db.query('UPDATE order_product SET quantity = ? WHERE order_id = ?', [product['quantity'], orderId])
+                    }
+                })
+
+                if(!change) {
+                    change = false
+                    const checkProduct = await db.query('SELECT id, price FROM product WHERE name = ?', [product['name']])
+                    if(checkProduct.length < 1) throw new Error('ProductNotFound')
+                    await db.query(
+                        'INSERT INTO order_product (order_id, quantity, name, price) VALUES (?, ?, ?, ?)',
+                        [
+                            orderId,
+                            product['quantity'],
+                            product['name'],
+                            checkProduct[0]['price'],
+                        ]
+                    );
                 }
-            })
-            
-            const {matches} = findIdMatches(products, getProducts())
-            updateProducts = lastOrder.products.concat(matches)
-        }
-        if (!address) address = lastOrder.address
-        if (!paymentMethod) paymentMethod = lastOrder.paymentMethod
-        updateProducts.forEach(p => finalPrice += (p.price * p.qty))
-
-        res.status(201).json([{msg:'order successfully updated'}, {order: updateOrder(lastOrder.id, updateProducts, address, paymentMethod, finalPrice)}])
-
-    } else res.status(400).json({err : 'You dont have an open order'})
-
-})
-
-
-/**
- * @swagger
- * /order/confirm:
- *  post:
- *      summary: Confirm the open order
- *      tags: [Orders]
- *      responses:
- *          '200':
- *              description: A JSON array of orders
- *              content:
- *                  application/json:
- *                      schema:
- *                          type: array
- *                          items:
- *                              $ref: '#/components/schemas/order'
- *          '401':
- *              description: No user is logged in
- *          '404':
- *              description: Open order not found
- *              content:
- *                  application/json:
- *                      schema:
- *                          type: object
- *                          properties:
- *                              err:
- *                                  type: string
- */
-router.post('/order/confirm', (req, res) => {
-    const email = req.auth.user
-    // const lastOrder = getOrders().filter(o => o.userEmail === email).slice(-1)[0]
-
-    let pre = false
-
-    const lastOrder = getOrders().filter(o => o.userEmail === email).slice(-1)[0]
-    if(lastOrder) {
-        lastOrder.status == 'new' ? pre = true : pre = false 
-    }
-
-    pre ? res.json(confirmOrder(lastOrder.id)) : res.status(404).json({err : 'You dont have an open order'})
-    // lastOrder.status === 'new' ? res.json(confirmOrder(lastOrder.id)) : res.status(404).json({err : 'You dont have an open order'})
-})
-
-/**
- * @swagger
- * /order/new:
- *  post:
- *      summary: Create a new order
- *      requestBody:
- *          required: true
- *          content:
- *              application/json:
- *                  schema:
- *                      type: object
- *                      properties:
- *                          products:
- *                              type: array
- *                              items:
- *                                  type: object
- *                          address:
- *                              type: string
- *                          paymentMethod:
- *                              type: string
- *                      example:
- *                          products: [{id: 1, qty: 2}, {id: 3, qty: 1}]
- *                          address: 436 E St NW
- *                          paymentMethod: cash
- *      tags: [Orders]
- *      responses:
- *          '200':
- *              description: A JSON array of orders
- *              content:
- *                  application/json:
- *                      schema:
- *                          type: array
- *                          items:
- *                              $ref: '#/components/schemas/order'
- *          '401':
- *              description: No user is logged in
- *          '404':
- *              description: Open order not found
- *              content:
- *                  application/json:
- *                      schema:
- *                          type: object
- *                          properties:
- *                              err:
- *                                  type: string
- */
-router.post('/order/new', (req, res) => {
-    const {products, paymentMethod} = req.body
-    let {address} = req.body
-    const email = req.auth.user
-    let finalPrice = 0
-    let pre
-    const userOrders = getOrders().filter(o => o.userEmail === email)
+            }))
     
-    if(userOrders.length >= 0) {
-        if(userOrders.length == 0) {
-            pre = true
-        } else {
-            userOrders.slice(-1)[0].status == 'new' ? pre = false : pre = true
+            // TODO: PROCEDIMIENTOS DE ALMACENADO EN MYSQL
+    
+            let finalPrice = 0
+            const finalProducts = await db.query('SELECT * FROM order_product WHERE order_id = ?', [orderId])
+    
+            finalProducts.map(product => {
+                finalPrice += product['price'] * product['quantity'];
+            })
+    
+            await db.query('UPDATE order_ SET final_price = ? WHERE id = ?', [finalPrice.toFixed(2), orderId])
         }
+
+        
+        res.sendStatus(204)
+
+    } catch (err) {
+        console.error(err)
+        if(err.message == 'ProductNotFound') return res.status(400).json({err: 'product not found'})
+        res.sendStatus(500)
     }
-
-    if(products.length>0 && pre && paymentMethod) { 
-        const {matches, err} = findIdMatches(products, getProducts())
-        matches.forEach(p => finalPrice += (p.price * p.qty))
-        if (!address) address = getUsers().find(u => u.email === email).address
-        if(matches.length > 0 && matches.length === products.length && !err[0]) {
-            res.json([{msg:'order successfully created'}, {order: addOrder(matches, email, address, paymentMethod, finalPrice)}])
-        } else err[0] ? res.status(400).json({err : err}) : res.status(404).json({msg: 'one or more products not found'})        
-
-    } else !pre ? res.status(400).json({err : 'You have an open order, please close it before create a new order'}) : res.sendStatus(400)
-
 })
 
-function findIdMatches(list1, list2) {
-    let matches = []
-    let err = []
-    list1.forEach(i => {
-        list2.forEach(j => {
-            if(i.id == j.id) {
-                if (i.id == j.id && i.qty && i.qty > 0 && typeof(parseInt(i.qty)) == 'number') {
-                    j.qty = parseInt(i.qty)
-                    matches.push(j)
-                } else err.push(`minimum order for ${j.name} is 1`)
-            }
-        })
-    })
-    return {matches, err}
-}
-
-/**
- * @swagger
- * tags:
- *  name: Orders
- * components:
- *  schemas:
- *      order:
- *          type: object
- *          required:
- *              -id
- *              -products
- *              -status
- *              -userEmail
- *              -address
- *              -paymentMethod
- *          properties:
- *              id:
- *                  type: integer
- *              products:
- *                  type: array
- *              status:
- *                  type: string
- *              userEmail:
- *                  type: string
- *              address:
- *                  type: string
- *              paymentMethod:
- *                  type: string
- *              finalPrice:
- *                  type: number
- *          example:
- *              id: 1
- *              products: [{"id": 1, "name": "Salmon roast", "price": 25.5, 'qty':1}, {"id": 9, "name": "Crab", "price": 29.99, 'qty':1}]
- *              status: new
- *              userEmail: user@mail.com
- *              address: 436 E St NW
- *              paymentMethod: cash
- *              finalPrice: 55.49
- */
 
 module.exports = router
