@@ -5,11 +5,11 @@ const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUI = require('swagger-ui-express');
 const path = require('path');
 const { authorizeToken } = require('./middleware/auth.mw');
-require('./database/db');
 
+require('./database/db');
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
-PORT = process.env.PORT || 3000;
+PORT = process.env.PORT || 5000;
 
 const swaggerOptions = require('./utils/swaggerOptions');
 const swaggerDocs = swaggerJsdoc(swaggerOptions);

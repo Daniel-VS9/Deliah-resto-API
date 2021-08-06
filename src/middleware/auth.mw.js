@@ -1,8 +1,6 @@
-const basicAuth = require('express-basic-auth')
-const {getUsers} = require('../models/user')
-
 const db = require('../database/db')
 const jwt = require('jsonwebtoken')
+const bcrypt = require('bcrypt')
 
 function createToken(req, res, next) {
     const {userData} = req
@@ -21,18 +19,20 @@ async function authenticate(req, res, next) {
     const {email, pass} = req.body
 
     try {
-        const user = await db.query('SELECT id, isAdmin FROM user WHERE email = ? AND pass = ?', [email, pass])
-
-        if(!user[0]) throw new Error('ND')
+        const dbPass = await db.query('SELECT pass FROM user WHERE email = ?', [email])
+        const match = await bcrypt.compare(pass, dbPass[0]['pass']) 
+        if (!match) throw new Error('ND')
+        const result = await db.query('SELECT id, isAdmin FROM user WHERE email = ?', [email])
         
-        req.userData = {id : user[0].id, email, isAdmin : user[0].isAdmin}
-
-        // NOTE: For bcrypt?
+        const user = result[0]
+        if(!user) throw new Error('ND')
+        
+        req.userData = {id : user.id, email, isAdmin : user.isAdmin}
 
         next()
 
     } catch (err) {
-        if(err.message == 'ND') {
+        if(err.message === 'ND') {
             res.sendStatus(400)
         } else{
             res.sendStatus(500)
@@ -45,7 +45,7 @@ function authorizeToken (req, res, next) {
     const token = authHeather && authHeather.split(' ')[1]
 
     if (token == null) return res.sendStatus(401)
-
+    
     try {
         const result = jwt.verify(token, process.env.ACCESS_TOKEN_KEY)
         req.userData = result
