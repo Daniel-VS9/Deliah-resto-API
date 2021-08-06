@@ -13,7 +13,7 @@ const db = mysql.createConnection({
 
 db.connect(err => {
     if(err) throw err.stack
-    console.log('mysql DB connected...')
+    console.log('Mysql DB connected...')
 })
 
 db.query = util.promisify(db.query).bind(db)
