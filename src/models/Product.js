@@ -20,12 +20,12 @@ Product.create = async (product) => {
 
     try {
         await db.query('INSERT INTO product (name, price) VALUES (?, ?)', [name, price]);
-        return 201;
-
+        return;
     } catch (err) {
-        console.log(err);
-        if (err.code == 'ER_BAD_NULL_ERROR') return 400;
-        return 500;
+        // console.log(err);
+        return {err}
+        // if (err.code == 'ER_BAD_NULL_ERROR') return 400;
+        // return 500;
     }
 };
 

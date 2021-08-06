@@ -1,5 +1,6 @@
 const express = require('express');
 const app = express();
+// const redis = require('redis')
 const helmet = require('helmet');
 const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUI = require('swagger-ui-express');
@@ -10,6 +11,9 @@ require('./database/db');
 require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 PORT = process.env.PORT || 5000;
+// REDIS_PORT = process.env.REDIS_PORT || 6379
+// const redisClient = redis.createClient()
+// const r = require('./cache/redis')
 
 const swaggerOptions = require('./utils/swaggerOptions');
 const swaggerDocs = swaggerJsdoc(swaggerOptions);
