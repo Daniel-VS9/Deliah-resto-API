@@ -6,7 +6,8 @@ This API is made to facilitate the management of a restaurant. For this purpose 
 - Express.js
 - Dotenv
 - Swagger
-- Express Basic Auth
+- JWT
+- Mysql
 
 ## Installation
 #### 1. Clone the project
@@ -27,12 +28,12 @@ touch .env
 
 Put this enviroment variables inside
 
-PORT=3000
-DB_HOST 
-DB_NAME
-DB_PASSWORD
-DB_USER
-ACCESS_TOKEN_KEY
+PORT  
+DB_HOST  
+DB_NAME  
+DB_PASSWORD  
+DB_USER  
+ACCESS_TOKEN_KEY  
 
 #### 3. Run the server
 ```

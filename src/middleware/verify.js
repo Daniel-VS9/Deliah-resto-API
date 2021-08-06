@@ -1,6 +1,6 @@
 const db = require('../database/db')
 
-async function verifyEmail2(req, res, next) {
+async function verifyEmail(req, res, next) {
     const {email} = req.body
 
     try {
@@ -18,7 +18,6 @@ async function verifyEmail2(req, res, next) {
 }
 
 async function previousOrderCheck(userId) {
-
     try {
         const previousOrder = await db.query('SELECT status_id, id FROM order_ WHERE user_id = ? ORDER BY id DESC LIMIT 1', [userId])
 
@@ -46,4 +45,4 @@ async function verifyClosedOrder(req, res, next) {
     res.status(400).json({ err: 'already has an open order' });
 }
 
-module.exports = {verifyEmail2, verifyOpenOrder, verifyClosedOrder}
+module.exports = {verifyEmail, verifyOpenOrder, verifyClosedOrder}

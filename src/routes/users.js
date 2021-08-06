@@ -1,10 +1,9 @@
 const express = require('express')
 const db = require('../database/db')
-const {verifyEmail2} = require('../middleware/verify')
+const {verifyEmail} = require('../middleware/verify')
 const {createToken, authenticate} = require('../middleware/auth.mw')
 const router = express.Router()
 
-// const {addUser, getUsers} = require('../models/user')
 
 router.get('/users', async (req, res) => {
     try {
@@ -16,7 +15,7 @@ router.get('/users', async (req, res) => {
     }
 })
 
-router.post('/register2', verifyEmail2, async (req, res) => {
+router.post('/register', verifyEmail, async (req, res) => {
     const {email, fullname, pass, phone, address} = req.body
     const user = [email, fullname, pass, phone, address]
 
@@ -34,7 +33,7 @@ router.post('/register2', verifyEmail2, async (req, res) => {
 
 })
 
-router.post('/login2', authenticate, createToken, (req, res) => {
+router.post('/login', authenticate, createToken, (req, res) => {
     res.json({accessToken : req.token})
 })
 

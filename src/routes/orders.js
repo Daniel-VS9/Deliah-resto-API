@@ -2,13 +2,11 @@ const express = require('express')
 const db = require('../database/db')
 const router = express.Router()
 
-const { verifyAdmin2} = require('../middleware/auth.mw')
+const { verifyAdmin} = require('../middleware/auth.mw')
 const {verifyOpenOrder, verifyClosedOrder } = require('../middleware/verify')
-// const { getOrders, updateStatus, addOrder, updateOrder, confirmOrder } = require('../models/order')
-// const { getProducts } = require('../models/product')
-// const { getUsers } = require('../models/user')
 
-router.get('/orders2', verifyAdmin2, async (req, res) => {
+
+router.get('/orders', verifyAdmin, async (req, res) => {
     try {
         const query =
             'SELECT o.id as orderID, s.name as status, u.fullname as username, o.address, pm.name as payment_method, o.final_price FROM order_ o' +
@@ -30,7 +28,7 @@ router.get('/orders2', verifyAdmin2, async (req, res) => {
     }
 });
 
-router.get('/myorders2', async (req, res) => {
+router.get('/myorders', async (req, res) => {
     const {id} = req.userData
     
     try {
@@ -56,7 +54,7 @@ router.get('/myorders2', async (req, res) => {
     }
 })
 
-router.put('/order/:id/status', verifyAdmin2, async (req, res) => {
+router.put('/order/:id/status', verifyAdmin, async (req, res) => {
     const {id} = req.params
     const {newStatus} = req.body
     if (!newStatus) return res.sendStatus(400)
@@ -74,7 +72,7 @@ router.put('/order/:id/status', verifyAdmin2, async (req, res) => {
     }
 })
 
-router.post('/order/confirm2', verifyOpenOrder, async (req, res) => {
+router.post('/order/confirm', verifyOpenOrder, async (req, res) => {
     
     try {
         await db.query('UPDATE order_ SET status_id = 4 WHERE ?', [req.userData.lastOrderId])
@@ -84,7 +82,7 @@ router.post('/order/confirm2', verifyOpenOrder, async (req, res) => {
     }
 })
 
-router.post('/order/new2', verifyClosedOrder, async (req, res) => {
+router.post('/order/new', verifyClosedOrder, async (req, res) => {
     const {products, paymentMethod} = req.body
     const userId = req.userData.id
 
@@ -136,7 +134,7 @@ router.post('/order/new2', verifyClosedOrder, async (req, res) => {
 })
 
 
-router.put('/order/modify2', verifyOpenOrder, async (req, res) => {
+router.put('/order/modify', verifyOpenOrder, async (req, res) => {
     const {products} = req.body
     let {address, paymentMethod} = req.body
     const userId = req.userData.id

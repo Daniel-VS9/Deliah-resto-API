@@ -2,11 +2,10 @@ const express = require('express')
 const db = require('../database/db')
 const router = express()
 
-const { verifyAdmin2 } = require('../middleware/auth.mw')
-// const { getPaymentMethods, addPaymenMethod, deletePaymentMethod, updatePaymentMethod } = require('../models/payment')
+const { verifyAdmin } = require('../middleware/auth.mw')
 
 
-router.get('/get', verifyAdmin2, async (req, res) => {
+router.get('/get', verifyAdmin, async (req, res) => {
     try {
         const methods = await db.query('SELECT * FROM payment_method')
         res.json(methods)
@@ -16,7 +15,7 @@ router.get('/get', verifyAdmin2, async (req, res) => {
 })
 
 
-router.post('/add2', verifyAdmin2, async (req, res) => {
+router.post('/add', verifyAdmin, async (req, res) => {
     const {name} = req.body
     if(!name || typeof(name) !== 'string' || name === "") return res.sendStatus(400)
 
@@ -28,7 +27,7 @@ router.post('/add2', verifyAdmin2, async (req, res) => {
     }
 })
 
-router.put('/edit2/:id', verifyAdmin2, async (req, res) => {
+router.put('/edit/:id', verifyAdmin, async (req, res) => {
     const {id} = req.params
     const {name} = req.body
     if(!name || typeof(name) !== 'string' || name === "") return res.sendStatus(400)
@@ -44,7 +43,7 @@ router.put('/edit2/:id', verifyAdmin2, async (req, res) => {
     }
 })
 
-router.delete('/delete2/:id', verifyAdmin2, async (req, res) => {
+router.delete('/delete/:id', verifyAdmin, async (req, res) => {
     const {id} = req.params
 
     try {

@@ -2,9 +2,7 @@ const express = require('express')
 const db = require('../database/db')
 const router = express.Router()
 
-const {authorizeToken, verifyAdmin2} = require('../middleware/auth.mw')
-// const {getProducts, addProduct, updateProduct, deleteProduct} = require('../models/product')
-
+const {verifyAdmin} = require('../middleware/auth.mw')
 
 router.get('/', async (req, res) => {
     try {
@@ -15,7 +13,7 @@ router.get('/', async (req, res) => {
     }
 })
 
-router.post('/new2', verifyAdmin2, async (req, res) => {
+router.post('/new', verifyAdmin, async (req, res) => {
     const {name, price} = req.body
 
     try {
@@ -30,7 +28,7 @@ router.post('/new2', verifyAdmin2, async (req, res) => {
     }
 })
 
-router.put('/edit2/:id', verifyAdmin2, async (req, res) => {
+router.put('/edit/:id', verifyAdmin, async (req, res) => {
     const {id} = req.params
     let {name, price} = req.body
 
@@ -48,7 +46,7 @@ router.put('/edit2/:id', verifyAdmin2, async (req, res) => {
     }
 })
 
-router.delete('/delete2/:id', verifyAdmin2, async (req, res) => {
+router.delete('/delete/:id', verifyAdmin, async (req, res) => {
     const {id} = req.params
 
     try {
