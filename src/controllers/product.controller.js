@@ -6,7 +6,7 @@ exports.create = async (req, res) => {
     
     const newProduct = new Product( name, price )
     const result = await Product.create(newProduct)
-
+    // TODO: UPDATE MODE OF SEND RESPONSES
     res.sendStatus(result)
 }
 
