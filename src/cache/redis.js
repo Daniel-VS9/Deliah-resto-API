@@ -10,7 +10,6 @@ client.on('err', function(err) {
     console.error(err)
 })
 
-// client.setex('prueba', 300, 'valor de prueba', redis.print)
 client.get = promisify(client.get)
 
 module.exports = client

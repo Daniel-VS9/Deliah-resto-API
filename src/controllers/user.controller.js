@@ -20,3 +20,12 @@ exports.create = async (req, res) => {
     if (!result) return res.sendStatus(201);
     if ( result.err.code == 'ER_BAD_NULL_ERROR' || result.err.code == 'ER_TRUNCATED_WRONG_VALUE_FOR_FIELD' ) return res.sendStatus(400);
 }
+
+exports.suspendById = async (req, res) => {
+    const {id} = req.params
+    const result = await User.suspendById(id)
+
+    if (!result) return res.sendStatus(204)
+    if (result.err && result.err.message == 'NF') return res.sendStatus(404)
+    return res.sendStatus(500)
+}

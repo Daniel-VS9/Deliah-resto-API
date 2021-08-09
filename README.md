@@ -8,34 +8,30 @@ This API is made to facilitate the management of a restaurant. For this purpose 
 - Swagger
 - JWT
 - Mysql
+- Mocha
+- Bcrypt
+- Helmet
+- Redis
 
-## Installation
-#### 1. Clone the project
+_____________________________________________________________________________
+
+## Installation<br/>
+### 1. Clone the project
 ```
-git clone https://gitlab.com/DDVS/deliah-resto-api.git
+git clone https://github.com/Daniel-VS9/Deliah-resto-API.git
 ```
-#### 2. Install dependencies
+### 2. Install dependencies
 ```
 npm install
 ```
 
-#### 3. Create .env file
-Create a file on the project folder
-Linux and mac os:
-```
-touch .env
-```
+### 3. Mysql
+Configure MySQL database (you can use attached deliahDB.sql file)<br/><br/>
 
-Put this enviroment variables inside
+### 4. Redis
+Be sure you have redis installed on your machine  <br/><br/>
 
-PORT  
-DB_HOST  
-DB_NAME  
-DB_PASSWORD  
-DB_USER  
-ACCESS_TOKEN_KEY  
-
-#### 3. Run the server
+### 5. Run the server
 ```
 npm run start
 ```
@@ -43,6 +39,16 @@ or
 ```
 npm run dev
 ```
+
+_____________________________________________________________________________
+## Tests
+To start the test routine run
+```
+npm run test
+```
+
+______________________________________________________________________________
+
 ## Documentation 
 [Documentation](http://localhost:3000/api-docs) can be accessed at http://localhost:3000/api-docs
 

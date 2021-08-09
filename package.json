@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "node src/server",
-    "dev": "nodemon src/server"
+    "dev": "nodemon src/server",
+    "test": "mocha"
   },
   "keywords": [],
   "author": "",
@@ -16,6 +17,7 @@
     "express": "^4.17.1",
     "helmet": "^4.6.0",
     "jsonwebtoken": "^8.5.1",
+    "mocha": "^9.0.3",
     "mysql": "^2.18.1",
     "redis": "^3.1.2",
     "swagger-jsdoc": "^6.1.0",

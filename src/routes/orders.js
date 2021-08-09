@@ -63,7 +63,7 @@ router.put('/order/:id/status', verifyAdmin, async (req, res) => {
         if (newStatus != 3 && newStatus != 4 && newStatus != 5 && newStatus != 6 && newStatus != 7) throw new Error('InvalidStatus')
         const result = await db.query('UPDATE order_ SET status_id = ? WHERE id = ?', [newStatus, id])
         if (result.affectedRows == 0) throw new Error('orderNotFound')
-        res.sendStatus(200)
+        res.sendStatus(204)
     } catch (err) {
         // console.error(err)
         if (err.message == 'InvalidStatus') return res.sendStatus(400)
@@ -85,16 +85,27 @@ router.post('/order/confirm', verifyOpenOrder, async (req, res) => {
 router.post('/order/new', verifyClosedOrder, async (req, res) => {
     const {products, paymentMethod} = req.body
     const userId = req.userData.id
+    let {address} = req.body
 
-    if (!products || !paymentMethod) return res.sendStatus(400)
+    if (!products || !paymentMethod || !address) return res.sendStatus(400)
 
     try {
         let finalPrice = 0
-        let userAddress = await db.query('SELECT address FROM user WHERE id = ?', [userId])
-        userAddress = userAddress[0]['address']
+
+        if(typeof address == 'number') {
+            address = await db.query('SELECT body FROM address WHERE id = ? AND userID = ?', [address, userId])
+            if (!address[0]) throw new Error('ADDRESS_NOT_FOUND')
+            address = address[0]['body']
+        }
+
+        await db.query('START TRANSACTION')
+
+        // let userAddress = await db.query('SELECT address FROM user WHERE id = ?', [userId])
+        // userAddress = userAddress[0]['address']
         
-        // TODO: ADD TRANSACTION
-        const address = req.body.address || userAddress 
+
+        
+        // const address = req.body.address || userAddress 
         
         const orderInserted = await db.query(
             'INSERT INTO order_ (user_id, payment_id, final_price, address) VALUES (?, ?, ?, ?)',
@@ -124,15 +135,21 @@ router.post('/order/new', verifyClosedOrder, async (req, res) => {
         
         await db.query('UPDATE order_ SET final_price = ? WHERE id = ?', [finalPrice, orderInserted.insertId])
 
+        await db.query('COMMIT')
+
         res.sendStatus(201)
 
     } catch (err) {
-        if (err.message == 'ProductNotFound') return res.sendStatus(404)
-        if (err.message == 'QuantityInvalid') return res.sendStatus(400)
+        await db.query('ROLLBACK')
+
+        if (err.message == 'ProductNotFound') return res.status(404).json({err : err.message})
+        if (err.message == 'QuantityInvalid') return res.status(400).json({err : err.message})
+        if (err.message == 'ADDRESS_NOT_FOUND') return res.status(404).json({err : err.message})
+        if (err.code == 'ER_NO_REFERENCED_ROW_2') return res.status(404).json({err : 'payment method not found'}) // TODO: test that
+        console.log(err)
         res.sendStatus(500)
     }
 })
-
 
 router.put('/order/modify', verifyOpenOrder, async (req, res) => {
     const {products} = req.body
@@ -140,31 +157,44 @@ router.put('/order/modify', verifyOpenOrder, async (req, res) => {
     const userId = req.userData.id
 
     try {
-        if (!address){
-            let userAddress = await db.query('SELECT address FROM user WHERE id = ?', [userId])
-            address = userAddress[0]['address']
-        } 
-
+        
+        await db.query('START TRANSACTION')
+        
         const order = await db.query('SELECT * FROM order_ WHERE user_id = ? ORDER BY id DESC LIMIT 1', [userId])  
         const orderId = order[0]['id']   
+        
+        
+        if (address){
+            if(typeof address == 'number') {
+                address = await db.query('SELECT body FROM address WHERE id = ? AND userID = ?', [address, userId])
+                if (!address[0]) throw new Error('ADDRESS_NOT_FOUND')
+                address = address[0]['body']
+            }
+            await db.query('UPDATE order_ SET address = ? WHERE id = ?', [address,  orderId])
+        }
 
         if (paymentMethod) {
-            await db.query('UPDATE order_ SET payment_id = ?, address = ? WHERE id = ?', [paymentMethod, address,  orderId])
+            await db.query('UPDATE order_ SET payment_id = ? WHERE id = ?', [paymentMethod, orderId])
         } 
 
-
         const productsFromOrder = await db.query('SELECT name, quantity, price FROM order_product WHERE order_id = ?', [orderId])
-
-        if (products && products[0]) {
+        if (products) {
+            // console.log(products)
             
             await Promise.all( products.map(async product => {
                 let change = false
-                if(!product['quantity']) product['quantity'] = 1
+                // if(!product['quantity']) product['quantity'] = 1
 
                 productsFromOrder.map(async productFromOrder => {
                     if(productFromOrder['name'] == product['name']) {
                         change = true
-                        await db.query('UPDATE order_product SET quantity = ? WHERE order_id = ?', [product['quantity'], orderId])
+
+                        // TODO: Working...
+                        if (product['quantity'] == 0) {
+                            await db.query('DELETE FROM order_product WHERE order_id = ? and name = ?', [orderId, product['name']])
+                        }
+                        // console.log(product['quantity'], orderId, product['name'])
+                        await db.query('UPDATE order_product SET quantity = ? WHERE order_id = ? and name = ?', [product['quantity'], orderId, product['name']])
                     }
                 })
 
@@ -196,12 +226,16 @@ router.put('/order/modify', verifyOpenOrder, async (req, res) => {
             await db.query('UPDATE order_ SET final_price = ? WHERE id = ?', [finalPrice.toFixed(2), orderId])
         }
 
-        
+        await db.query('COMMIT')
         res.sendStatus(204)
 
     } catch (err) {
-        console.error(err)
-        if(err.message == 'ProductNotFound') return res.status(400).json({err: 'product not found'})
+        await db.query('ROLLBACK')
+
+        if(err.message == 'ProductNotFound') return res.status(404).json({err: 'product not found'})
+        if (err.message == 'ADDRESS_NOT_FOUND') return res.status(404).json({err : err.message})
+        if (err.code == 'ER_NO_REFERENCED_ROW_2') return res.status(404).json({err : 'payment method not found'})
+        console.log(err)
         res.sendStatus(500)
     }
 })

@@ -5,8 +5,8 @@ const router = express()
 const { verifyAdmin } = require('../middleware/auth.mw')
 const PaymentMethod = require('../controllers/paymentMethod.controller')
 
-
-router.get('/get', verifyAdmin, PaymentMethod.getAll)
+// TODO: verify admin here
+router.get('/get', PaymentMethod.getAll)
 
 router.post('/add', verifyAdmin, PaymentMethod.create)
 
