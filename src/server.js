@@ -1,7 +1,6 @@
 const express = require('express');
 const app = express();
 const helmet = require('helmet');
-const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUI = require('swagger-ui-express');
 const path = require('path');
 const { authorizeToken } = require('./middleware/auth.mw');
@@ -12,9 +11,13 @@ require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 PORT = process.env.PORT || 5000;
 
 const swaggerOptions = require('./utils/swagger');
+const cspDefaults = helmet.contentSecurityPolicy.getDefaultDirectives();
+delete cspDefaults['upgrade-insecure-requests'];
 
 app.use(express.json());
-app.use(helmet());
+app.use(helmet({
+    contentSecurityPolicy: {directives: cspDefaults}
+}));
 
 // Routes
 app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(swaggerOptions));
