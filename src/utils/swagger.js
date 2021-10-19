@@ -806,11 +806,11 @@ swagger = {
             },
         },
     },
-    servers: [
-        {
-            url: `http://localhost:${process.env.PORT}`,
-        },
-    ],
+    // servers: [
+    //     {
+    //         url: `http://localhost:${process.env.PORT}`,
+    //     },
+    // ],
     components: {
         securitySchemes: {
             bearerAuth: {
