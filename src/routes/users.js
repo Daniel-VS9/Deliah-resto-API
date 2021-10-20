@@ -12,7 +12,6 @@ router.post('/login', authenticate, createToken, (req, res) => {
     res.json({accessToken : req.token})
 })
 
-// TODO: WORKING...
 router.put('/suspend/:id', verifyAdmin, User.suspendById)
 
 
