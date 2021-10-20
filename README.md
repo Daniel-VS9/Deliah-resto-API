@@ -44,7 +44,7 @@ ______________________________________________________________________________
 ## AWS architecture
 <img src="images/awsArchitecture.png" alt="delilah api aws architecture" height="650"/>
 
-[Full size](images/awsArchitecture.png)
+[Full size diagram](images/awsArchitecture.png)
 
 _____________________________________________________________________________
 ## Tests
