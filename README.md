@@ -40,12 +40,22 @@ or
 npm run dev
 ```
 
+______________________________________________________________________________
+## AWS architecture
+<img src="images/awsArchitecture.png" alt="delilah api aws architecture" height="650"/>
+
+[Full size](images/awsArchitecture.png)
+
 _____________________________________________________________________________
 ## Tests
 To start the test routine run
 ```
 npm run test
 ```
+
+______________________________________________________________________________
+## Demo
+You can see this project running [here](http://www.delilahresto.ga/api-docs)
 
 ______________________________________________________________________________
 
