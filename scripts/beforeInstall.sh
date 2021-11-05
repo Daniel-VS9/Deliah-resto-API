@@ -4,7 +4,7 @@ DIR="/home/ubuntu/Deliah-resto-API"
 
 if [ -d "$DIR" ]; then
     echo "$DIR exists"
-    rm -rf ${DIR}/{*,.+}
+    rm -rf ${DIR}/{*,.*}
 else
     echo "Creating ${DIR} directory"
     mkdir ${DIR}

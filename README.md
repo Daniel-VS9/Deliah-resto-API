@@ -55,7 +55,7 @@ npm run test
 
 ______________________________________________________________________________
 ## Demo
-You can see this project running [here](http://www.delilahresto.ga/api-docs)
+You can see this project running [here](https://www.delilahresto.ga/api-docs/)
 
 ______________________________________________________________________________
 
